@@ -1,9 +1,20 @@
+@import url('https://fonts.googleapis.com/css2?family=Pinyon+Script&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 
 body {
   background-color: #0a0e17;
   color: #e5e7eb;
   font-family: "Inter", system-ui, sans-serif;
 }
+
+
+
+.font-pinyon {
+  font-family: "Pinyon Script", cursive;
+  font-weight: 500;
+  font-style: normal;
+}
+
