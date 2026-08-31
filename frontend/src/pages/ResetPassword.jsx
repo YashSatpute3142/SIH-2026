@@ -49,62 +49,122 @@ function ResetPassword() {
   }
 
   return (
-    <div className="min-h-screen bg-navy-950 text-slate-100 flex items-center justify-center px-6">
+    <div className="min-h-screen bg-[#090d14] text-slate-100 overflow-hidden">
+  <div className="min-h-screen grid lg:grid-cols-2">
+
+    {/* LEFT VIDEO SIDE */}
+    <div className="relative hidden lg:block overflow-hidden">
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover"
+      >
+        <source
+          src="/mine-login-background.mp4"
+          type="video/mp4"
+        />
+      </video>
+
+      {/* Natural transition between video and content */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-[#090d14]" />
+    </div>
+
+    {/* RIGHT CONTENT SIDE */}
+    <div className="relative flex items-center justify-center px-6 py-12 lg:px-16">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-sm bg-navy-900 border border-navy-700 rounded-xl p-8"
+        className="w-full max-w-md"
       >
-        <div className="flex items-center justify-center gap-2 mb-6">
-          <div className="w-2 h-2 rounded-full bg-risk-green animate-pulse" />
-          <span className="font-semibold tracking-wide text-sm">
+        {/* Brand */}
+        <div className="flex items-center gap-3 mb-12">
+          <div className="relative flex items-center justify-center w-4 h-4">
+            <div className="absolute w-4 h-4 rounded-full bg-red-500/20 animate-ping" />
+            <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+          </div>
+
+          <span className="font-semibold tracking-[0.22em] text-sm">
             MINE SUBSIDENCE SYSTEM
           </span>
         </div>
 
         {success ? (
-          <p className="text-risk-green text-sm text-center">
-            Password reset successfully. Redirecting to sign in...
-          </p>
+          <>
+            <div className="w-12 h-1 rounded-full bg-red-400 mb-8" />
+
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+              Password reset{" "}
+              <span className="text-red-400">successful.</span>
+            </h1>
+
+            <p className="text-red-400 text-base leading-relaxed">
+              Password reset successfully. Redirecting to sign in...
+            </p>
+          </>
         ) : (
           <>
-            <h1 className="text-xl font-bold mb-1 text-center">Set a new password</h1>
-            <p className="text-slate-400 text-sm mb-6 text-center">
-              Choose a new password for your account
+            <div className="w-12 h-1 rounded-full bg-red-400 mb-8" />
+
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+              Set a new{" "}
+              <span className="text-red-400">password.</span>
+            </h1>
+
+            <p className="text-slate-400 text-base leading-relaxed mb-10">
+              Choose a new secure password for your account.
             </p>
 
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <input
-                type="password"
-                placeholder="New password (min 8 characters)"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-                minLength={8}
-                className="w-full px-4 py-2.5 rounded-lg bg-navy-800 border border-navy-700 focus:border-risk-green outline-none text-sm"
-              />
+            <div className="border border-slate-700/70 bg-[#10151e]/70 backdrop-blur-xl rounded-2xl p-6 md:p-8">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <label className="block text-xs font-medium tracking-[0.18em] text-slate-400 mb-3">
+                    NEW PASSWORD
+                  </label>
 
-              {error && <p className="text-risk-red text-sm">{error}</p>}
+                  <input
+                    type="password"
+                    placeholder="Enter your new password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    minLength={8}
+                    className="w-full px-5 py-4 rounded-xl bg-[#0b1017] border border-slate-700/80 focus:border-red-400 focus:ring-1 focus:ring-red-400 outline-none text-sm placeholder:text-slate-600 transition-all"
+                  />
+                </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full px-6 py-3 rounded-lg bg-risk-green text-navy-950 font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                {loading ? "Resetting..." : "Reset Password"}
-              </button>
-            </form>
+                {error && (
+                  <p className="text-risk-red text-sm">
+                    {error}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full px-6 py-4 rounded-xl bg-red-500 hover:bg-red-400 text-white font-semibold transition-all hover:shadow-[0_10px_40px_rgba(239,68,68,0.25)] disabled:opacity-50"
+                >
+                  {loading ? "Resetting..." : "Reset Password →"}
+                </button>
+              </form>
+            </div>
           </>
         )}
 
-        <p className="text-center text-sm text-slate-400 mt-6">
-          <Link to="/login" className="text-risk-green hover:underline">
-            Back to Sign In
+        <p className="text-sm text-slate-400 mt-8">
+          <Link
+            to="/login"
+            className="hover:text-red-400 transition-colors"
+          >
+            ← Back to Sign In
           </Link>
         </p>
       </motion.div>
     </div>
+  </div>
+</div>
   );
 }
 
