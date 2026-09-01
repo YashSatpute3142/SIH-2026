@@ -11,9 +11,15 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s:%(message
 from auth.router import router as auth_router
 from auth.dependencies import get_current_user
 from models.user import User
+from api.ingestion import router as ingestion_router
+from api.reads import router as reads_router
+from api.websocket import router as websocket_router
 
 app = FastAPI(title="mine-subsidence-system")
 app.include_router(auth_router)
+app.include_router(ingestion_router)
+app.include_router(reads_router)
+app.include_router(websocket_router)
 
 app.add_middleware(
     CORSMiddleware,
