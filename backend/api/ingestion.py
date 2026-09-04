@@ -10,6 +10,7 @@ from models.sensor_models import SensorReadingRaw, SensorReadingProcessed, Senso
 from services.validation import validate_reading, normalize_timestamp
 from services.feature_engineering import compute_features
 from api.websocket import manager
+from rules.risk_engine import evaluate_risk, save_risk_evaluation
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +108,17 @@ async def ingest_reading(
         features["data_quality_score"],
     )
 
+    risk_result = evaluate_risk(db, node, raw_reading, processed_reading)
+    risk = save_risk_evaluation(db, risk_result)
+
+    logger.info(
+        "Risk evaluated node_id=%s risk_id=%s risk_level=%s rule_triggered=%s",
+        reading.node_id,
+        risk.id,
+        risk.risk_level,
+        risk.rule_triggered,
+    )
+
     await manager.broadcast({
         "type": "new_reading",
         "node_id": reading.node_id,
@@ -118,6 +130,8 @@ async def ingest_reading(
         "data_quality_score": features["data_quality_score"],
         "displacement_mm": raw_reading.displacement_mm,
         "sensor_status": raw_reading.sensor_status,
+        "risk_level": risk.risk_level,
+        "rule_triggered": risk.rule_triggered,
     })
 
     return SensorReadingIngestResponse(
