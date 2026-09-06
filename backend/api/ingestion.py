@@ -11,6 +11,7 @@ from services.validation import validate_reading, normalize_timestamp
 from services.feature_engineering import compute_features
 from api.websocket import manager
 from rules.risk_engine import evaluate_risk, save_risk_evaluation
+from ml.inference import run_full_inference, save_anomaly, save_prediction, update_risk_with_ml
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +120,36 @@ async def ingest_reading(
         risk.rule_triggered,
     )
 
+    inference_result = None
+    try:
+        inference_result = run_full_inference(raw_reading, processed_reading, risk.risk_level)
+
+        save_anomaly(
+            db, node.id, zone.id, processed_reading.id, raw_reading.reading_timestamp,
+            inference_result["isolation_forest"],
+        )
+        save_prediction(
+            db, node.id, zone.id, raw_reading.reading_timestamp,
+            inference_result["xgboost_regressor"],
+        )
+        update_risk_with_ml(
+            db, risk.id, inference_result["xgboost_classifier"], inference_result["isolation_forest"],
+        )
+        db.refresh(risk)
+
+        logger.info(
+            "ML inference node_id=%s ml_risk_class=%s anomaly_status=%s predicted_displacement_mm=%s",
+            reading.node_id,
+            risk.ml_risk_class,
+            inference_result["isolation_forest"]["anomaly_status"] if inference_result["isolation_forest"] else None,
+            inference_result["xgboost_regressor"]["predicted_displacement_mm"] if inference_result["xgboost_regressor"] else None,
+        )
+    except Exception as exc:
+        logger.warning(
+            "ML inference failed for node_id=%s, continuing with rule-engine-only risk: %s",
+            reading.node_id, exc,
+        )
+
     await manager.broadcast({
         "type": "new_reading",
         "node_id": reading.node_id,
@@ -132,6 +163,17 @@ async def ingest_reading(
         "sensor_status": raw_reading.sensor_status,
         "risk_level": risk.risk_level,
         "rule_triggered": risk.rule_triggered,
+        "ml_risk_class": risk.ml_risk_class,
+        "ml_probability": risk.ml_probability,
+        "anomaly_score": risk.anomaly_score,
+        "predicted_displacement_mm": (
+            inference_result["xgboost_regressor"]["predicted_displacement_mm"]
+            if inference_result and inference_result["xgboost_regressor"] else None
+        ),
+        "trend_direction": (
+            inference_result["xgboost_regressor"]["trend_direction"]
+            if inference_result and inference_result["xgboost_regressor"] else None
+        ),
     })
 
     return SensorReadingIngestResponse(

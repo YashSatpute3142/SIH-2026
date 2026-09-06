@@ -94,7 +94,7 @@ class ScenarioSensorNode(SensorNode):
 
         previous_displacement = self.displacement_mm
         if self.scenario == "sudden_deformation" and self.scenario_tick == self.sudden_jump_tick:
-            self.displacement_mm = round(min(50.0, self.displacement_mm + random.uniform(5.0, 12.0)), 4)
+            self.displacement_mm = round(self.displacement_mm + random.uniform(40.0, 55.0), 4)
         else:
             biased_value = self.displacement_mm + profile["displacement_bias"]
             self.displacement_mm = self._drift(biased_value, profile["displacement_drift"], 0.0, 50.0)
@@ -128,6 +128,8 @@ class ScenarioSensorNode(SensorNode):
 
         if profile["calibration_status_override"] is not None:
             self.calibration_status = profile["calibration_status_override"]
+        else:
+            self.calibration_status = "calibrated"
 
         return {
             "node_id": self.node_id,

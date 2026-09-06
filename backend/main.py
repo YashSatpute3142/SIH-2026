@@ -1,5 +1,6 @@
 import os
 import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -15,8 +16,29 @@ from api.ingestion import router as ingestion_router
 from api.reads import router as reads_router
 from api.websocket import router as websocket_router
 from api.risks import router as risks_router
+from database.session import SessionLocal
+from ml.model_loader import initialize_model_registry
 
-app = FastAPI(title="mine-subsidence-system")
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    db = SessionLocal()
+    try:
+        loaded, failed = initialize_model_registry(db)
+        if failed:
+            logger.warning(
+                "Starting up with %s of %s ML models unavailable: %s. "
+                "Ingestion will continue with rule-engine-only risk evaluation for those models.",
+                len(failed), len(loaded) + len(failed), list(failed.keys()),
+            )
+    finally:
+        db.close()
+    yield
+
+
+app = FastAPI(title="mine-subsidence-system", lifespan=lifespan)
 app.include_router(auth_router)
 app.include_router(ingestion_router)
 app.include_router(reads_router)
