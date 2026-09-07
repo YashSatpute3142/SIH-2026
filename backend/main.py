@@ -16,6 +16,7 @@ from api.ingestion import router as ingestion_router
 from api.reads import router as reads_router
 from api.websocket import router as websocket_router
 from api.risks import router as risks_router
+from api.sync import router as sync_router
 from database.session import SessionLocal
 from ml.model_loader import initialize_model_registry
 
@@ -44,6 +45,7 @@ app.include_router(ingestion_router)
 app.include_router(reads_router)
 app.include_router(websocket_router)
 app.include_router(risks_router)
+app.include_router(sync_router)
 
 app.add_middleware(
     CORSMiddleware,

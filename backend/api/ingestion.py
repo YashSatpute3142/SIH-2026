@@ -12,6 +12,7 @@ from services.feature_engineering import compute_features
 from api.websocket import manager
 from rules.risk_engine import evaluate_risk, save_risk_evaluation
 from ml.inference import run_full_inference, save_anomaly, save_prediction, update_risk_with_ml
+from sync.sync_service import enqueue_for_sync
 
 logger = logging.getLogger(__name__)
 
@@ -109,6 +110,38 @@ async def ingest_reading(
         features["data_quality_score"],
     )
 
+    try:
+        enqueue_for_sync(
+            db,
+            entity_type="sensor_reading_raw",
+            entity_id=raw_reading.id,
+            payload={
+                "node_id": raw_reading.node_id,
+                "zone_id": raw_reading.zone_id,
+                "reading_timestamp": raw_reading.reading_timestamp.isoformat(),
+                "data_source": raw_reading.data_source,
+                "tilt_x": raw_reading.tilt_x,
+                "tilt_y": raw_reading.tilt_y,
+                "tilt_magnitude": raw_reading.tilt_magnitude,
+                "displacement_mm": raw_reading.displacement_mm,
+                "displacement_rate": raw_reading.displacement_rate,
+                "vibration_rms": raw_reading.vibration_rms,
+                "vibration_peak": raw_reading.vibration_peak,
+                "vibration_variance": raw_reading.vibration_variance,
+                "crack_width_mm": raw_reading.crack_width_mm,
+                "crack_detected": raw_reading.crack_detected,
+                "temperature": raw_reading.temperature,
+                "humidity": raw_reading.humidity,
+                "battery_voltage": raw_reading.battery_voltage,
+                "rssi": raw_reading.rssi,
+                "packet_loss": raw_reading.packet_loss,
+                "sensor_status": raw_reading.sensor_status,
+                "calibration_status": raw_reading.calibration_status,
+            },
+        )
+    except Exception as exc:
+        logger.warning("Failed to enqueue raw reading for sync, continuing: %s", exc)
+
     risk_result = evaluate_risk(db, node, raw_reading, processed_reading)
     risk = save_risk_evaluation(db, risk_result)
 
@@ -124,11 +157,11 @@ async def ingest_reading(
     try:
         inference_result = run_full_inference(raw_reading, processed_reading, risk.risk_level)
 
-        save_anomaly(
+        anomaly_id = save_anomaly(
             db, node.id, zone.id, processed_reading.id, raw_reading.reading_timestamp,
             inference_result["isolation_forest"],
         )
-        save_prediction(
+        prediction_id = save_prediction(
             db, node.id, zone.id, raw_reading.reading_timestamp,
             inference_result["xgboost_regressor"],
         )
@@ -144,11 +177,76 @@ async def ingest_reading(
             inference_result["isolation_forest"]["anomaly_status"] if inference_result["isolation_forest"] else None,
             inference_result["xgboost_regressor"]["predicted_displacement_mm"] if inference_result["xgboost_regressor"] else None,
         )
+
+        if inference_result["isolation_forest"] is not None and anomaly_id is not None:
+            try:
+                enqueue_for_sync(
+                    db,
+                    entity_type="anomaly",
+                    entity_id=anomaly_id,
+                    payload={
+                        "node_id": node.id,
+                        "zone_id": zone.id,
+                        "processed_reading_id": processed_reading.id,
+                        "detected_at": raw_reading.reading_timestamp.isoformat(),
+                        "anomaly_score": inference_result["isolation_forest"]["anomaly_score"],
+                        "anomaly_status": inference_result["isolation_forest"]["anomaly_status"],
+                        "model_version": inference_result["isolation_forest"]["model_version"],
+                    },
+                )
+            except Exception as exc:
+                logger.warning("Failed to enqueue anomaly for sync, continuing: %s", exc)
+
+        if inference_result["xgboost_regressor"] is not None and prediction_id is not None:
+            try:
+                enqueue_for_sync(
+                    db,
+                    entity_type="prediction",
+                    entity_id=prediction_id,
+                    payload={
+                        "node_id": node.id,
+                        "zone_id": zone.id,
+                        "predicted_at": raw_reading.reading_timestamp.isoformat(),
+                        "horizon_hours": inference_result["xgboost_regressor"]["horizon_hours"],
+                        "predicted_displacement_mm": inference_result["xgboost_regressor"]["predicted_displacement_mm"],
+                        "trend_direction": inference_result["xgboost_regressor"]["trend_direction"],
+                        "confidence": inference_result["xgboost_regressor"]["confidence"],
+                        "model_name": "xgboost_regressor",
+                        "model_version": inference_result["xgboost_regressor"]["model_version"],
+                    },
+                )
+            except Exception as exc:
+                logger.warning("Failed to enqueue prediction for sync, continuing: %s", exc)
+
     except Exception as exc:
         logger.warning(
             "ML inference failed for node_id=%s, continuing with rule-engine-only risk: %s",
             reading.node_id, exc,
         )
+
+    try:
+        enqueue_for_sync(
+            db,
+            entity_type="risk",
+            entity_id=risk.id,
+            payload={
+                "zone_id": risk.zone_id,
+                "node_id": risk.node_id,
+                "evaluated_at": risk.evaluated_at.isoformat(),
+                "risk_level": risk.risk_level,
+                "rule_triggered": risk.rule_triggered,
+                "ml_risk_class": risk.ml_risk_class,
+                "ml_probability": risk.ml_probability,
+                "anomaly_score": risk.anomaly_score,
+                "sensor_health_status": risk.sensor_health_status,
+                "neighbor_agreement_count": risk.neighbor_agreement_count,
+                "persistence_seconds": risk.persistence_seconds,
+                "data_quality_status": risk.data_quality_status,
+                "recommended_action": risk.recommended_action,
+            },
+        )
+    except Exception as exc:
+        logger.warning("Failed to enqueue risk for sync, continuing: %s", exc)
 
     await manager.broadcast({
         "type": "new_reading",

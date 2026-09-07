@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import Landing from "./pages/Landing.jsx";
 import Login from "./pages/Login.jsx";
@@ -7,8 +8,15 @@ import ResetPassword from "./pages/ResetPassword.jsx";
 import AuthSuccess from "./pages/AuthSuccess.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import ProtectedRoute from "./components/layout/ProtectedRoute.jsx";
+import { useTheme } from "./store/themeStore.js";
 
 function App() {
+  const theme = useTheme();
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }, [theme]);
+
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
