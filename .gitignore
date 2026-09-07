@@ -21,3 +21,5 @@ data/synthetic/*
 backend/credentials/firebase-service-account.json
 backend/credentials/
 .env
+backend/credentials/
+.env
