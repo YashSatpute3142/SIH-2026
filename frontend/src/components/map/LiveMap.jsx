@@ -22,13 +22,9 @@ const RISK_LEVELS = {
 
 const RISK_RANK = { GREEN: 0, YELLOW: 1, GREY: 1, ORANGE: 2, RED: 3 };
 
-const LIGHT_TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-const LIGHT_TILE_ATTRIBUTION =
+const TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+const TILE_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
-
-const DARK_TILE_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
-const DARK_TILE_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
 const iconCache = {};
 
@@ -204,12 +200,15 @@ function LiveMap() {
     return () => stopPolling();
   }, [startPolling, stopPolling]);
 
-  const tileUrl = theme === "dark" ? DARK_TILE_URL : LIGHT_TILE_URL;
-  const tileAttribution = theme === "dark" ? DARK_TILE_ATTRIBUTION : LIGHT_TILE_ATTRIBUTION;
   const mapBackground = theme === "dark" ? "#0f172a" : "#f8fafc";
 
   return (
-    <div className="relative w-full h-full">
+    <div className={`relative w-full h-full ${theme === "dark" ? "map-dark-tiles" : ""}`}>
+      <style>{`
+        .map-dark-tiles .leaflet-tile-pane {
+          filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9);
+        }
+      `}</style>
       {error && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm px-4 py-2 rounded-lg">
           {error}
@@ -221,7 +220,7 @@ function LiveMap() {
         className="w-full h-full"
         style={{ background: mapBackground }}
       >
-        <TileLayer key={theme} url={tileUrl} attribution={tileAttribution} />
+        <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} />
         {zoneIds.map((id) => (
           <ZoneBoundary key={id} zone={zonesById[id]} />
         ))}

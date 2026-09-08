@@ -43,17 +43,17 @@ def list_risks(
 
 @router.get("/nodes/{node_id}/risk/latest", response_model=RiskOut)
 def get_node_latest_risk(
-    node_id: int,
+    node_id: str,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    node = db.query(SensorNode).filter(SensorNode.id == node_id).first()
+    node = db.query(SensorNode).filter(SensorNode.node_id == node_id).one_or_none()
     if node is None:
         raise HTTPException(status_code=404, detail="Node not found")
 
     risk = (
         db.query(Risk)
-        .filter(Risk.node_id == node_id)
+        .filter(Risk.node_id == node.id)
         .order_by(Risk.evaluated_at.desc())
         .first()
     )
@@ -66,18 +66,18 @@ def get_node_latest_risk(
 
 @router.get("/nodes/{node_id}/risk/history", response_model=List[RiskOut])
 def get_node_risk_history(
-    node_id: int,
+    node_id: str,
     limit: int = Query(100, le=500),
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    node = db.query(SensorNode).filter(SensorNode.id == node_id).first()
+    node = db.query(SensorNode).filter(SensorNode.node_id == node_id).one_or_none()
     if node is None:
         raise HTTPException(status_code=404, detail="Node not found")
 
     return (
         db.query(Risk)
-        .filter(Risk.node_id == node_id)
+        .filter(Risk.node_id == node.id)
         .order_by(Risk.evaluated_at.desc())
         .limit(limit)
         .all()
