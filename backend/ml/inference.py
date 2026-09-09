@@ -1,3 +1,4 @@
+import json
 import logging
 import sys
 from datetime import datetime, timezone
@@ -267,13 +268,21 @@ def update_risk_with_ml(db: Session, risk_id, classifier_result, if_result):
     ml_probability = classifier_result["ml_probability"] if classifier_result else None
     anomaly_score = if_result["anomaly_score"] if if_result else None
 
+    contributing_features = (
+        classifier_result.get("top_contributing_features") if classifier_result else None
+    )
+    contributing_features_json = (
+        json.dumps(contributing_features) if contributing_features is not None else None
+    )
+
     db.execute(
         text(
             """
             UPDATE risks
             SET ml_risk_class = :ml_risk_class,
                 ml_probability = :ml_probability,
-                anomaly_score = :anomaly_score
+                anomaly_score = :anomaly_score,
+                contributing_features = :contributing_features
             WHERE id = :risk_id
             """
         ),
@@ -281,6 +290,7 @@ def update_risk_with_ml(db: Session, risk_id, classifier_result, if_result):
             "ml_risk_class": ml_risk_class,
             "ml_probability": ml_probability,
             "anomaly_score": anomaly_score,
+            "contributing_features": contributing_features_json,
             "risk_id": risk_id,
         },
     )

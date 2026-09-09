@@ -6,6 +6,7 @@ from sqlalchemy import (
     Integer,
     DateTime,
     Text,
+    JSON,
     ForeignKey,
     func,
 )
@@ -26,6 +27,7 @@ class Risk(Base):
     ml_risk_class = Column(String(20))
     ml_probability = Column(Float)
     anomaly_score = Column(Float)
+    contributing_features = Column(JSON)
     sensor_health_status = Column(String(50))
     neighbor_agreement_count = Column(Integer, default=0)
     persistence_seconds = Column(Integer, default=0)

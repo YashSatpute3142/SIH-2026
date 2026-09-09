@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, Literal
+from typing import Optional, Literal, Dict
 from pydantic import BaseModel, ConfigDict
 
 
@@ -19,6 +19,7 @@ class RiskEvaluationResult(BaseModel):
     ml_risk_class: Optional[str] = None
     ml_probability: Optional[float] = None
     anomaly_score: Optional[float] = None
+    contributing_features: Optional[Dict[str, float]] = None
     sensor_health_status: SensorHealthStatus
     neighbor_agreement_count: int = 0
     persistence_seconds: int = 0
@@ -38,6 +39,7 @@ class RiskOut(BaseModel):
     ml_risk_class: Optional[str] = None
     ml_probability: Optional[float] = None
     anomaly_score: Optional[float] = None
+    contributing_features: Optional[Dict[str, float]] = None
     sensor_health_status: Optional[str] = None
     neighbor_agreement_count: int
     persistence_seconds: int

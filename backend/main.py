@@ -19,6 +19,9 @@ from api.risks import router as risks_router
 from api.sync import router as sync_router
 from database.session import SessionLocal
 from ml.model_loader import initialize_model_registry
+from api.alerts import router as alerts_router
+from api.anomalies import router as anomalies_router
+from api.predictions import router as predictions_router
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +48,14 @@ app.include_router(ingestion_router)
 app.include_router(reads_router)
 app.include_router(websocket_router)
 app.include_router(risks_router)
+app.include_router(sync_router)
+app.include_router(risks_router)
+app.include_router(alerts_router)
+app.include_router(sync_router)
+app.include_router(risks_router)
+app.include_router(alerts_router)
+app.include_router(anomalies_router)
+app.include_router(predictions_router)
 app.include_router(sync_router)
 
 app.add_middleware(
