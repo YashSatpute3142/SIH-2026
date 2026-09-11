@@ -54,10 +54,10 @@ class ModelRegistry:
         # If the stored path does not exist (e.g. Render),
         # resolve the model relative to the project root.
         if not file_path.exists():
-            project_root = Path(__file__).resolve().parents[2]
+            backend_root = Path(__file__).resolve().parents[1]
 
-            file_name = file_path.name
-            model_path = project_root / "backend" / "ml_models" / file_name
+            file_name = file_path.name 
+            model_path = backend_root / "ml_models" / file_name
 
             if model_path.exists():
                 file_path = model_path
