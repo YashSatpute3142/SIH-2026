@@ -66,7 +66,7 @@ class ModelRegistry:
             raise ModelNotAvailableError(
                 f"model_versions row for {model_name} points to a missing file: {file_path}"
             )
-
+        logger.info("MODEL DEBUG: loading %s from %s", model_name, file_path)
         artifact = joblib.load(file_path)
 
         raw_metrics = version_row.get("metrics")
