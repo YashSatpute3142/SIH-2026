@@ -31,7 +31,9 @@ def fetch_active_model_version(db: Session, model_name: str):
     ).mappings().first()
 
     if row is None:
-        raise ModelNotAvailableError(f"No active model_versions row found for model_name={model_name}")
+        raise ModelNotAvailableError(
+            f"No active model_versions row found for model_name={model_name}"
+        )
 
     return dict(row)
 
@@ -45,7 +47,20 @@ class ModelRegistry:
 
     def load_model(self, db: Session, model_name: str):
         version_row = fetch_active_model_version(db, model_name)
+
         file_path = Path(version_row["file_path"])
+
+        # Keep existing local absolute paths working.
+        # If the stored path does not exist (e.g. Render),
+        # resolve the model relative to the project root.
+        if not file_path.exists():
+            project_root = Path(__file__).resolve().parents[2]
+
+            file_name = file_path.name
+            model_path = project_root / "models" / model_name / file_name
+
+            if model_path.exists():
+                file_path = model_path
 
         if not file_path.exists():
             raise ModelNotAvailableError(
@@ -68,7 +83,12 @@ class ModelRegistry:
             self._versions[model_name] = version_row["version"]
             self._metrics[model_name] = parsed_metrics
 
-        logger.info("Loaded model %s version %s from %s", model_name, version_row["version"], file_path)
+        logger.info(
+            "Loaded model %s version %s from %s",
+            model_name,
+            version_row["version"],
+            file_path,
+        )
         return artifact
 
     def load_all(self, db: Session):
@@ -86,7 +106,9 @@ class ModelRegistry:
         with self._lock:
             artifact = self._artifacts.get(model_name)
         if artifact is None:
-            raise ModelNotAvailableError(f"Model {model_name} is not currently loaded in the registry")
+            raise ModelNotAvailableError(
+                f"Model {model_name} is not currently loaded in the registry"
+            )
         return artifact
 
     def is_loaded(self, model_name: str) -> bool:
@@ -114,10 +136,15 @@ def initialize_model_registry(db: Session):
     if failed:
         logger.warning(
             "Model registry initialized with %s of %s models loaded; missing: %s",
-            len(loaded), len(MODEL_NAMES), list(failed.keys()),
+            len(loaded),
+            len(MODEL_NAMES),
+            list(failed.keys()),
         )
     else:
-        logger.info("Model registry initialized with all %s models loaded", len(loaded))
+        logger.info(
+            "Model registry initialized with all %s models loaded",
+            len(loaded),
+        )
     return loaded, failed
 
 
@@ -142,7 +169,9 @@ if __name__ == "__main__":
         loaded, failed = initialize_model_registry(db)
         print("Loaded models:", list(loaded.keys()))
         for model_name in loaded:
-            print(f"  {model_name} -> version {model_registry.get_version(model_name)}")
+            print(
+                f"  {model_name} -> version {model_registry.get_version(model_name)}"
+            )
         if failed:
             print("Failed to load:", failed)
     finally:
