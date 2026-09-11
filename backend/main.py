@@ -22,6 +22,8 @@ from ml.model_loader import initialize_model_registry
 from api.alerts import router as alerts_router
 from api.anomalies import router as anomalies_router
 from api.predictions import router as predictions_router
+from api.nodes import router as nodes_router
+from api.influence_zones import router as influence_zones_router
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +58,12 @@ app.include_router(risks_router)
 app.include_router(alerts_router)
 app.include_router(anomalies_router)
 app.include_router(predictions_router)
+app.include_router(sync_router)
+app.include_router(predictions_router)
+app.include_router(nodes_router)
+app.include_router(sync_router)
+app.include_router(nodes_router)
+app.include_router(influence_zones_router)
 app.include_router(sync_router)
 
 app.add_middleware(

@@ -25,10 +25,24 @@ function latestRiskPerNode(risks) {
   return map;
 }
 
+// InfluenceZoneOut is keyed by the string node_id (e.g. "NODE-A-01"), unlike
+// nodesById/risksByNodeId which stay on the existing numeric PK for backward
+// compatibility. Kept as its own string-keyed slice rather than forcing a
+// join into the numeric-keyed maps — see HANDOVER decision: numeric store
+// key stays put, new endpoints get their own lookup alongside it.
+function keyByNodeId(zones) {
+  const map = {};
+  for (const zone of zones) {
+    map[zone.node_id] = zone;
+  }
+  return map;
+}
+
 const useMapDataStore = create((set, get) => ({
   zonesById: {},
   nodesById: {},
   risksByNodeId: {},
+  influenceZonesByNodeId: {},
   isLoading: false,
   error: null,
   lastFetchedAt: null,
@@ -53,10 +67,24 @@ const useMapDataStore = create((set, get) => ({
     return risks;
   },
 
+  // GREY nodes are excluded from this response by the backend formula itself
+  // (missing data is never evidence of risk, so no zone is drawn for them) —
+  // the store just stores whatever comes back, no client-side filtering needed.
+  fetchInfluenceZones: async () => {
+    const zones = await apiGet("/api/influence-zones");
+    set({ influenceZonesByNodeId: keyByNodeId(zones) });
+    return zones;
+  },
+
   refreshAll: async () => {
     set({ isLoading: true, error: null });
     try {
-      await Promise.all([get().fetchZones(), get().fetchNodes(), get().fetchRisks()]);
+      await Promise.all([
+        get().fetchZones(),
+        get().fetchNodes(),
+        get().fetchRisks(),
+        get().fetchInfluenceZones(),
+      ]);
       set({ isLoading: false, lastFetchedAt: new Date().toISOString() });
     } catch (error) {
       set({ isLoading: false, error: error.message || "Failed to load map data" });
@@ -82,6 +110,8 @@ const useMapDataStore = create((set, get) => ({
 export const useZonesById = () => useMapDataStore((state) => state.zonesById);
 export const useNodesById = () => useMapDataStore((state) => state.nodesById);
 export const useRisksByNodeId = () => useMapDataStore((state) => state.risksByNodeId);
+export const useInfluenceZonesByNodeId = () =>
+  useMapDataStore((state) => state.influenceZonesByNodeId);
 export const useMapDataLoading = () => useMapDataStore((state) => state.isLoading);
 export const useMapDataError = () => useMapDataStore((state) => state.error);
 
@@ -90,6 +120,11 @@ export const useNodeById = (nodeId) =>
 
 export const useRiskForNode = (nodeId) =>
   useMapDataStore((state) => state.risksByNodeId[nodeId]);
+
+// Keyed by string node_id (e.g. "NODE-A-01"), not the numeric PK — pass
+// node.node_id, not node.id, when calling this.
+export const useInfluenceZoneForNode = (stringNodeId) =>
+  useMapDataStore((state) => state.influenceZonesByNodeId[stringNodeId]);
 
 export const useMapDataActions = () =>
   useMapDataStore(

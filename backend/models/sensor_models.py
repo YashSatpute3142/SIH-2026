@@ -49,8 +49,10 @@ class SensorNode(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     node_id = Column(String(50), nullable=False, unique=True)
+    node_name = Column(String(255))
     zone_id = Column(BigInteger, ForeignKey("zones.id", ondelete="RESTRICT"), nullable=False)
     data_source = Column(Enum("real", "simulated", name="data_source_enum"), nullable=False, default="simulated")
+    sensor_types = Column(JSON)
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
     is_reference_node = Column(Boolean, nullable=False, default=False)

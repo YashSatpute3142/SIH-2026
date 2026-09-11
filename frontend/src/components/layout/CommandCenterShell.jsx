@@ -1,17 +1,19 @@
 import { memo, useEffect, useState, useCallback } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useUser, useAuthActions } from "../../store/authStore.js";
 import { useTheme, useToggleTheme, useSidebarCollapsed, useToggleSidebar } from "../../store/themeStore.js";
 import { apiGet } from "../../utils/apiClient.js";
 
+// "soon" items flip to enabled: true one at a time, only once their page is
+// actually built and tested — never all at once, per project discipline.
 const NAV_ITEMS = [
-  { label: "Overview", code: "OV", path: "/dashboard", enabled: true },
-  { label: "Live Map", code: "LM", path: "/dashboard", enabled: true },
-  { label: "Nodes", code: "ND", path: "/dashboard/nodes", enabled: false },
-  { label: "Zones", code: "ZN", path: "/dashboard/zones", enabled: false },
-  { label: "Alerts", code: "AL", path: "/dashboard/alerts", enabled: false },
-  { label: "Analytics", code: "AN", path: "/dashboard/analytics", enabled: false },
-  { label: "System Health", code: "SH", path: "/dashboard/system-health", enabled: false },
+  { label: "Overview", code: "OV", path: "/dashboard", enabled: true, end: true },
+  { label: "Live Map", code: "LM", path: "/dashboard/map", enabled: true, end: true },
+  { label: "Nodes", code: "ND", path: "/dashboard/nodes", enabled: true, end: true },
+  { label: "Zones", code: "ZN", path: "/dashboard/zones", enabled: true, end: true },
+  { label: "Alerts", code: "AL", path: "/dashboard/alerts", enabled: true, end: true },
+  { label: "Analytics", code: "AN", path: "/dashboard/analytics", enabled: true, end: true },
+  { label: "System Health", code: "SH", path: "/dashboard/system-health", enabled: true, end: true },
 ];
 
 const SYNC_STATUS_POLL_MS = 20000;
@@ -22,14 +24,14 @@ const Sidebar = memo(function Sidebar() {
 
   return (
     <aside
-      className={`shrink-0 bg-white dark:bg-navy-900 border-r border-slate-200 dark:border-navy-700 flex flex-col transition-all duration-300 ease-in-out ${
+      className={`shrink-0 bg-white dark:bg-navy-900 border-r border-slate-200 dark:border-navy-650 flex flex-col transition-all duration-300 ease-in-out ${
         collapsed ? "w-16" : "w-56"
       }`}
     >
-      <div className="px-4 py-6 border-b border-slate-200 dark:border-navy-700 flex items-center justify-between">
+      <div className="px-4 py-6 border-b border-slate-200 dark:border-navy-650 flex items-center justify-between">
         {!collapsed && (
           <div className="min-w-0">
-            <p className="text-slate-900 dark:text-slate-100 font-semibold leading-tight truncate">
+            <p className="text-slate-900 dark:text-slate-100 font-semibold leading-tight truncate tracking-tight">
               Subsidence Watch
             </p>
             <p className="text-slate-500 dark:text-slate-500 text-xs mt-1">Mine Command Center</p>
@@ -49,20 +51,27 @@ const Sidebar = memo(function Sidebar() {
             <NavLink
               key={item.label}
               to={item.path}
-              end
+              end={item.end}
               title={collapsed ? item.label : undefined}
               className={({ isActive }) =>
-                `flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                `relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
                   isActive
-                    ? "bg-slate-100 dark:bg-navy-700 text-slate-900 dark:text-slate-100"
+                    ? "bg-slate-100 dark:bg-navy-800 text-slate-900 dark:text-slate-100"
                     : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-navy-800 hover:text-slate-800 dark:hover:text-slate-200"
                 }`
               }
             >
-              {collapsed ? (
-                <span className="text-xs font-semibold">{item.code}</span>
-              ) : (
-                <span>{item.label}</span>
+              {({ isActive }) => (
+                <>
+                  {isActive && (
+                    <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-slate-900 dark:bg-slate-100" />
+                  )}
+                  {collapsed ? (
+                    <span className="text-xs font-semibold">{item.code}</span>
+                  ) : (
+                    <span>{item.label}</span>
+                  )}
+                </>
               )}
             </NavLink>
           ) : (
@@ -117,7 +126,7 @@ const SyncStatusBadge = memo(function SyncStatusBadge() {
 
   if (error || !status) {
     return (
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-navy-800 border border-slate-200 dark:border-navy-700">
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-navy-850 border border-slate-200 dark:border-navy-650">
         <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-600" />
         <span className="text-xs text-slate-500 dark:text-slate-500">Sync status unavailable</span>
       </div>
@@ -127,9 +136,9 @@ const SyncStatusBadge = memo(function SyncStatusBadge() {
   const isOnline = status.internet_online;
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-navy-800 border border-slate-200 dark:border-navy-700">
+    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-navy-850 border border-slate-200 dark:border-navy-650">
       <span
-        className={`w-2 h-2 rounded-full ${isOnline ? "bg-emerald-500 dark:bg-emerald-400" : "bg-amber-500 dark:bg-amber-400"}`}
+        className={`w-2 h-2 rounded-full ${isOnline ? "bg-emerald-500 dark:bg-emerald-500/80" : "bg-amber-500 dark:bg-amber-500/80"}`}
       />
       <span className="text-xs text-slate-700 dark:text-slate-300">
         {isOnline ? "Online" : "Offline"}
@@ -138,7 +147,7 @@ const SyncStatusBadge = memo(function SyncStatusBadge() {
         <span className="text-xs text-slate-500 dark:text-slate-500">· {status.pending_count} pending</span>
       )}
       {status.failed_count > 0 && (
-        <span className="text-xs text-red-600 dark:text-red-400">· {status.failed_count} failed</span>
+        <span className="text-xs text-red-600 dark:text-red-400/90">· {status.failed_count} failed</span>
       )}
     </div>
   );
@@ -151,7 +160,7 @@ const ThemeToggle = memo(function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-navy-700 transition-colors"
+      className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-navy-850 border border-slate-200 dark:border-navy-650 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-navy-800 transition-colors"
       aria-label="Toggle theme"
       title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
     >
@@ -173,7 +182,7 @@ const UserMenu = memo(function UserMenu({ onSignOut }) {
       </div>
       <button
         onClick={onSignOut}
-        className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-navy-800 hover:bg-slate-200 dark:hover:bg-navy-700 text-slate-700 dark:text-slate-300 text-sm transition-colors"
+        className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-navy-850 hover:bg-slate-200 dark:hover:bg-navy-800 text-slate-700 dark:text-slate-300 text-sm transition-colors border border-transparent dark:border-navy-650"
       >
         Sign Out
       </button>
@@ -183,7 +192,7 @@ const UserMenu = memo(function UserMenu({ onSignOut }) {
 
 const TopBar = memo(function TopBar({ onSignOut }) {
   return (
-    <header className="h-16 shrink-0 bg-white dark:bg-navy-900 border-b border-slate-200 dark:border-navy-700 flex items-center justify-between px-6">
+    <header className="h-16 shrink-0 bg-white/95 dark:bg-navy-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-navy-650 flex items-center justify-between px-6">
       <SyncStatusBadge />
       <div className="flex items-center gap-4">
         <ThemeToggle />
@@ -193,7 +202,7 @@ const TopBar = memo(function TopBar({ onSignOut }) {
   );
 });
 
-function CommandCenterShell({ children }) {
+function CommandCenterShell() {
   const { clearSession } = useAuthActions();
   const navigate = useNavigate();
 
@@ -203,11 +212,13 @@ function CommandCenterShell({ children }) {
   }, [clearSession, navigate]);
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-navy-950">
+    <div className="min-h-screen flex bg-slate-50 dark:bg-navy-975">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar onSignOut={handleSignOut} />
-        <main className="flex-1 min-h-0">{children}</main>
+        <main className="flex-1 min-h-0">
+          <Outlet />
+        </main>
       </div>
     </div>
   );

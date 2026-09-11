@@ -23,3 +23,17 @@ backend/credentials/
 .env
 backend/credentials/
 .env
+backend/venv311/
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+venv/
+venv311/
+.env
+.env.*
+
+# Node
+node_modules/

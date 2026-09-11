@@ -77,4 +77,22 @@ export function apiPost(path, body) {
   });
 }
 
+// Added for node mutations (PATCH /api/nodes/{node_id}) and any future
+// partial-update endpoint — same request() plumbing as apiPost, just a
+// different HTTP verb, so 401/error/204 handling stays identical.
+export function apiPatch(path, body) {
+  return request(path, {
+    method: "PATCH",
+    body: body ? JSON.stringify(body) : undefined,
+  });
+}
+
+// Added for node deregistration (DELETE /api/nodes/{node_id}), which per the
+// Chat 8 backend is a soft delete server-side (status -> "decommissioned")
+// — this client function just issues the DELETE, no client-side special
+// casing needed since the server already handles the soft-delete semantics.
+export function apiDelete(path) {
+  return request(path, { method: "DELETE" });
+}
+
 export { API_BASE_URL, ApiError };

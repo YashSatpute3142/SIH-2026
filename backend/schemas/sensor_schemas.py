@@ -1,6 +1,18 @@
 from datetime import datetime
-from typing import Optional, Literal
-from pydantic import BaseModel, ConfigDict
+from typing import Optional, List, Literal
+from pydantic import BaseModel, ConfigDict, Field
+
+
+SensorType = Literal[
+    "tilt",
+    "displacement",
+    "vibration",
+    "crack",
+    "temperature",
+    "humidity",
+    "battery",
+    "rssi",
+]
 
 
 class SensorReadingIngest(BaseModel):
@@ -102,11 +114,36 @@ class SensorNodeOut(BaseModel):
 
     id: int
     node_id: str
+    node_name: Optional[str] = None
     zone_id: int
     data_source: Literal["real", "simulated"]
+    sensor_types: Optional[List[SensorType]] = None
     latitude: float
     longitude: float
     is_reference_node: bool
     calibration_status: str
     last_seen_at: Optional[datetime] = None
     status: str
+
+
+class NodeCreate(BaseModel):
+    node_id: str = Field(..., min_length=1, max_length=50)
+    node_name: Optional[str] = Field(default=None, max_length=255)
+    zone_id: int
+    data_source: Literal["real", "simulated"]
+    sensor_types: Optional[List[SensorType]] = None
+    latitude: float = Field(..., ge=-90.0, le=90.0)
+    longitude: float = Field(..., ge=-180.0, le=180.0)
+    is_reference_node: bool = False
+    calibration_status: str = "unknown"
+
+
+class NodeUpdate(BaseModel):
+    node_name: Optional[str] = Field(default=None, max_length=255)
+    zone_id: Optional[int] = None
+    sensor_types: Optional[List[SensorType]] = None
+    latitude: Optional[float] = Field(default=None, ge=-90.0, le=90.0)
+    longitude: Optional[float] = Field(default=None, ge=-180.0, le=180.0)
+    is_reference_node: Optional[bool] = None
+    calibration_status: Optional[str] = None
+    status: Optional[str] = None
