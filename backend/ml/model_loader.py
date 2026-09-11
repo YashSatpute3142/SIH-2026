@@ -57,7 +57,7 @@ class ModelRegistry:
             project_root = Path(__file__).resolve().parents[2]
 
             file_name = file_path.name
-            model_path = project_root / "models" / file_name
+            model_path = project_root / "backend" / "ml_models" / file_name
 
             if model_path.exists():
                 file_path = model_path
