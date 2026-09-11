@@ -57,7 +57,7 @@ class ModelRegistry:
             project_root = Path(__file__).resolve().parents[2]
 
             file_name = file_path.name
-            model_path = project_root / "models" / model_name / file_name
+            model_path = project_root / "models" / file_name
 
             if model_path.exists():
                 file_path = model_path
@@ -94,21 +94,25 @@ class ModelRegistry:
     def load_all(self, db: Session):
         loaded = {}
         failed = {}
+
         for model_name in MODEL_NAMES:
             try:
                 loaded[model_name] = self.load_model(db, model_name)
             except ModelNotAvailableError as exc:
                 logger.warning("Could not load model %s: %s", model_name, exc)
                 failed[model_name] = str(exc)
+
         return loaded, failed
 
     def get(self, model_name: str):
         with self._lock:
             artifact = self._artifacts.get(model_name)
+
         if artifact is None:
             raise ModelNotAvailableError(
                 f"Model {model_name} is not currently loaded in the registry"
             )
+
         return artifact
 
     def is_loaded(self, model_name: str) -> bool:
@@ -133,6 +137,7 @@ model_registry = ModelRegistry()
 
 def initialize_model_registry(db: Session):
     loaded, failed = model_registry.load_all(db)
+
     if failed:
         logger.warning(
             "Model registry initialized with %s of %s models loaded; missing: %s",
@@ -145,6 +150,7 @@ def initialize_model_registry(db: Session):
             "Model registry initialized with all %s models loaded",
             len(loaded),
         )
+
     return loaded, failed
 
 
@@ -165,14 +171,19 @@ if __name__ == "__main__":
     from database.session import SessionLocal
 
     db = SessionLocal()
+
     try:
         loaded, failed = initialize_model_registry(db)
+
         print("Loaded models:", list(loaded.keys()))
+
         for model_name in loaded:
             print(
                 f"  {model_name} -> version {model_registry.get_version(model_name)}"
             )
+
         if failed:
             print("Failed to load:", failed)
+
     finally:
         db.close()
