@@ -45,67 +45,67 @@ class ModelRegistry:
         self._versions = {}
         self._metrics = {}
 
-def load_model(self, db: Session, model_name: str):
-    version_row = fetch_active_model_version(db, model_name)
+    def load_model(self, db: Session, model_name: str):
+        version_row = fetch_active_model_version(db, model_name)
 
-    file_path = Path(version_row["file_path"])
+        file_path = Path(version_row["file_path"])
 
-    # The database stores the original local Windows path.
-    # On Render, resolve the model inside backend/ml_models/.
-    if not file_path.exists():
-        file_name = file_path.name
+        # The database stores the original local Windows path.
+        # On Render, resolve the model inside backend/ml_models/.
+        if not file_path.exists():
+            file_name = file_path.name
 
-        backend_dir = Path(__file__).resolve().parents[1]
-        model_path = backend_dir / "ml_models" / file_name
+            backend_dir = Path(__file__).resolve().parents[1]
+            model_path = backend_dir / "ml_models" / file_name
+
+            logger.info(
+                "MODEL PATH: model=%s, stored=%s, resolved=%s, exists=%s",
+                model_name,
+                file_path,
+                model_path,
+                model_path.exists(),
+            )
+
+            if model_path.exists():
+                file_path = model_path
+
+        if not file_path.exists():
+            raise ModelNotAvailableError(
+                f"model_versions row for {model_name} points to a missing file: {file_path}"
+            )
 
         logger.info(
-            "MODEL PATH: model=%s, stored=%s, resolved=%s, exists=%s",
+            "MODEL LOAD: loading %s version %s from %s",
             model_name,
+            version_row["version"],
             file_path,
-            model_path,
-            model_path.exists(),
         )
 
-        if model_path.exists():
-            file_path = model_path
+        artifact = joblib.load(file_path)
 
-    if not file_path.exists():
-        raise ModelNotAvailableError(
-            f"model_versions row for {model_name} points to a missing file: {file_path}"
+        raw_metrics = version_row.get("metrics")
+
+        if isinstance(raw_metrics, str):
+            try:
+                parsed_metrics = json.loads(raw_metrics)
+            except (TypeError, ValueError):
+                parsed_metrics = None
+        else:
+            parsed_metrics = raw_metrics
+
+        with self._lock:
+            self._artifacts[model_name] = artifact
+            self._versions[model_name] = version_row["version"]
+            self._metrics[model_name] = parsed_metrics
+
+        logger.info(
+            "Loaded model %s version %s from %s",
+            model_name,
+            version_row["version"],
+            file_path,
         )
 
-    logger.info(
-        "MODEL LOAD: loading %s version %s from %s",
-        model_name,
-        version_row["version"],
-        file_path,
-    )
-
-    artifact = joblib.load(file_path)
-
-    raw_metrics = version_row.get("metrics")
-
-    if isinstance(raw_metrics, str):
-        try:
-            parsed_metrics = json.loads(raw_metrics)
-        except (TypeError, ValueError):
-            parsed_metrics = None
-    else:
-        parsed_metrics = raw_metrics
-
-    with self._lock:
-        self._artifacts[model_name] = artifact
-        self._versions[model_name] = version_row["version"]
-        self._metrics[model_name] = parsed_metrics
-
-    logger.info(
-        "Loaded model %s version %s from %s",
-        model_name,
-        version_row["version"],
-        file_path,
-    )
-
-    return artifact
+        return artifact
 
     def load_all(self, db: Session):
         loaded = {}
