@@ -55,13 +55,13 @@ def _jitter(field, value):
     return value + random.uniform(-spread, spread)
 
 
-def normal(ticks=5):
+def normal(ticks=3):
     """No degradation — steady-state baseline. Used as a control and as
     the resting profile most other scenarios start/end from."""
     return [{} for _ in range(ticks)]
 
 
-def gradual_deformation(ticks=8):
+def gradual_deformation(ticks=5):
     """Slow, monotonic displacement/tilt increase — the classic creeping
     subsidence signature, meant to eventually cross YELLOW/ORANGE
     thresholds in the real rule engine."""
@@ -77,7 +77,7 @@ def gradual_deformation(ticks=8):
     return out
 
 
-def sudden_deformation(ticks=8):
+def sudden_deformation(ticks=5):
     """Sharp deformation event that becomes severe and remains sustained
     long enough for the real rule engine to demonstrate the full
     YELLOW -> ORANGE -> RED progression."""
@@ -109,7 +109,7 @@ def sudden_deformation(ticks=8):
     return out
 
 
-def crack_growth(ticks=6):
+def crack_growth(ticks=4):
     """Crack width ramps up; crack_detected flips True once past a
     visually-plausible threshold (2mm)."""
     out = []
@@ -123,7 +123,7 @@ def crack_growth(ticks=6):
     return out
 
 
-def external_vibration(ticks=5):
+def external_vibration(ticks=4):
     """Temporary vibration spike (blasting/heavy equipment nearby) that
     returns to baseline — tests that the rule engine doesn't confuse this
     with a structural signature."""
@@ -141,7 +141,7 @@ def external_vibration(ticks=5):
     return out
 
 
-def sensor_failure(ticks=4):
+def sensor_failure(ticks=3):
     """Node starts reporting garbage/erratic values partway through and
     flags itself faulty. Fields stay present (not None) with implausible
     values, since we don't know how strictly validate_reading treats
