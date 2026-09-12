@@ -51,7 +51,7 @@ function SystemHealthPage() {
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             Offline-first sync status. Model registry status is not yet available
-            \u2014 no backend endpoint exists for it yet.
+            — no backend endpoint exists for it yet.
           </p>
         </div>
 

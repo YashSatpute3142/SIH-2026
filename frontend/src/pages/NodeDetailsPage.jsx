@@ -190,7 +190,7 @@ function NodeDetailsPage() {
                   value={influenceZone.basis?.neighbor_agreement_count}
                 />
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-3 pt-3 border-t border-slate-100 dark:border-navy-800">
-                  Formula-based estimate, not an ML model \u2014 shown for
+                  Formula-based estimate, not an ML model — shown for
                   transparency, not as a guaranteed boundary.
                 </p>
               </>
@@ -267,7 +267,7 @@ function NodeDetailsPage() {
                   value={prediction.predicted_at ? new Date(prediction.predicted_at).toLocaleString() : null}
                 />
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-3 pt-3 border-t border-slate-100 dark:border-navy-800">
-                  Synthetic-data model output \u2014 not a guarantee of real-world
+                  Synthetic-data model output — not a guarantee of real-world
                   accuracy. Decision support only.
                 </p>
               </>

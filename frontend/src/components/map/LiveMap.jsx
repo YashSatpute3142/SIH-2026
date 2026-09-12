@@ -23,6 +23,7 @@ import useMapDataStore, {
   useMapDataError,
 } from "../../store/mapDataStore.js";
 import { useTheme } from "../../store/themeStore.js";
+import { useNodePopupData } from "../../hooks/useNodePopupData.js";
 import { RISK_LEVELS, resolveRiskLevel, getRiskColor, computeZoneWorstRisk } from "../../utils/riskLevels.js";
 import {
   STREET_TILE_URL,
@@ -90,6 +91,15 @@ const NodeMarker = memo(function NodeMarker({ nodeId }) {
   // this hook takes node.node_id, not nodeId.
   const influenceZone = useInfluenceZoneForNode(node?.node_id);
 
+  // Live reading data is fetched lazily, only while this marker's popup is
+  // actually open — not on page load for every node. This is what keeps
+  // richer popups from becoming an N+1 fetch problem across 9+ markers.
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const { latest: reading, isLoading: readingLoading, error: readingError } = useNodePopupData(
+    node?.node_id,
+    isPopupOpen
+  );
+
   if (!node) return null;
 
   const riskLevel = resolveRiskLevel(node, risk);
@@ -100,6 +110,10 @@ const NodeMarker = memo(function NodeMarker({ nodeId }) {
     <Marker
       position={[node.latitude, node.longitude]}
       icon={getRiskIcon(riskLevel, node.data_source, theme)}
+      eventHandlers={{
+        popupopen: () => setIsPopupOpen(true),
+        popupclose: () => setIsPopupOpen(false),
+      }}
     >
       <Popup>
         <div className="min-w-[200px]">
@@ -134,6 +148,47 @@ const NodeMarker = memo(function NodeMarker({ nodeId }) {
               Influence radius: {Math.round(influenceZone.radius_m)} m
             </p>
           )}
+
+          {/* Live raw reading — fetched only while this popup is open, from
+              GET /api/nodes/{node_id}/readings/raw (limit 1). Not the
+              /readings/latest endpoint, which only returns derived trend
+              fields (tilt_rate, battery_trend, etc.), not raw instantaneous
+              values — confirmed against the real reads.py router. */}
+          <div className="pt-1.5 mt-1.5 border-t border-slate-100 dark:border-navy-650">
+            {readingLoading ? (
+              <p className="text-xs text-slate-400 dark:text-slate-500">Loading readings...</p>
+            ) : readingError ? (
+              <p className="text-xs text-slate-400 dark:text-slate-500">
+                {readingError.includes("404") || readingError.toLowerCase().includes("not found")
+                  ? "No readings yet"
+                  : readingError}
+              </p>
+            ) : reading ? (
+              <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs text-slate-600 dark:text-slate-300">
+                {reading.battery_voltage != null && (
+                  <span>Battery: {reading.battery_voltage.toFixed(2)} V</span>
+                )}
+                {reading.tilt_magnitude != null && (
+                  <span>Tilt: {reading.tilt_magnitude.toFixed(2)}°</span>
+                )}
+                {reading.displacement_mm != null && (
+                  <span>Displacement: {reading.displacement_mm.toFixed(1)} mm</span>
+                )}
+                {reading.temperature != null && (
+                  <span>Temp: {reading.temperature.toFixed(1)}°C</span>
+                )}
+                {reading.humidity != null && (
+                  <span>Humidity: {reading.humidity.toFixed(0)}%</span>
+                )}
+                {reading.rssi != null && <span>RSSI: {reading.rssi} dBm</span>}
+                <span className="col-span-2 text-slate-400 dark:text-slate-500 mt-0.5">
+                  {new Date(reading.reading_timestamp).toLocaleString()}
+                </span>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400 dark:text-slate-500">No readings yet</p>
+            )}
+          </div>
         </div>
       </Popup>
     </Marker>
@@ -456,15 +511,36 @@ function useMapCenter(nodesById) {
   }, [nodesById]);
 }
 
-function LiveMap() {
-  const zonesById = useZonesById();
-  const nodesById = useNodesById();
+// scopeToZoneId is optional — when provided, this same component renders as
+// a mini-map limited to one zone's nodes (used by ZoneDetailsPage) instead
+// of building a second map component. Default (no prop) behaves exactly as
+// before: full mine-wide map. NodeMarker/InfluenceZoneGlow/ZoneBoundary
+// themselves need no changes — they already select their own data by id
+// from the store, scoping only changes which ids get iterated over here.
+function LiveMap({ scopeToZoneId = null }) {
+  const allZonesById = useZonesById();
+  const allNodesById = useNodesById();
   const error = useMapDataError();
   const { startPolling, stopPolling } = useMapDataActions();
-  const center = useMapCenter(nodesById);
   const theme = useTheme();
   const [mapView, setMapView] = useState("street");
   const [flyToTarget, setFlyToTarget] = useState(null);
+
+  const zonesById = useMemo(() => {
+    if (scopeToZoneId == null) return allZonesById;
+    return Object.fromEntries(
+      Object.entries(allZonesById).filter(([, z]) => z.id === scopeToZoneId)
+    );
+  }, [allZonesById, scopeToZoneId]);
+
+  const nodesById = useMemo(() => {
+    if (scopeToZoneId == null) return allNodesById;
+    return Object.fromEntries(
+      Object.entries(allNodesById).filter(([, n]) => n.zone_id === scopeToZoneId)
+    );
+  }, [allNodesById, scopeToZoneId]);
+
+  const center = useMapCenter(nodesById);
 
   const zoneIds = useMemo(() => Object.keys(zonesById), [zonesById]);
   const nodeIds = useMemo(() => Object.keys(nodesById), [nodesById]);
@@ -539,7 +615,7 @@ function LiveMap() {
 
       <MapContainer
         center={center}
-        zoom={DEFAULT_ZOOM}
+        zoom={scopeToZoneId != null ? 16 : DEFAULT_ZOOM}
         className="w-full h-full"
         style={{ background: mapBackground }}
         zoomControl={false}

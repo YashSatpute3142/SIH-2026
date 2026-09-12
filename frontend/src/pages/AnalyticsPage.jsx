@@ -214,7 +214,7 @@ function AnalyticsPage() {
             Analytics
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Prototype data \u2014 every chart is tagged with its data status
+            Prototype data — every chart is tagged with its data status
           </p>
         </div>
 

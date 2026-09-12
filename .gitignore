@@ -37,3 +37,4 @@ venv311/
 
 # Node
 node_modules/
+credentials/
